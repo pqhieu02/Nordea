@@ -5,6 +5,7 @@ import com.nordea.country.model.Country;
 import com.nordea.country.repository.CountryRepository;
 import com.nordea.country.service.dto.CountryNameAndCodeDTO;
 import com.nordea.country.service.dto.GetCountryDTO;
+import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -23,6 +24,11 @@ public class CountryService {
 	private final RestCountriesClient restCountriesClient;
 	private final Logger log = LoggerFactory.getLogger(CountryService.class);
 
+	@PostConstruct
+	public void onStartup() {
+		fetchAndUpdateCountries();
+	}
+
 	public void createOrUpdateCountry(Country data) {
 		countryRepository
 			.findByName(data.getName())
@@ -33,7 +39,6 @@ public class CountryService {
 				country.setCapital(country.getCapital());
 				country.setFlagFileUrl(country.getFlagFileUrl());
 			}, () -> {
-				log.info("Country {} not found in database. Add new entry", data.getName());
 				countryRepository.save(data);
 			});
 	}
@@ -82,7 +87,7 @@ public class CountryService {
 				});
 	}
 
-	@Scheduled(fixedRate = 1000 * 60 * 60 * 6)
+	@Scheduled(fixedRate = 1000 * 60 * 60 * 6, initialDelay = 1000 * 60 * 60 * 6)
 	public void fetchAndUpdateCountries() {
 		log.info("Request to fetch and update countries");
 		var data = restCountriesClient.getAllCountries();
